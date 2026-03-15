@@ -3,181 +3,109 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>God Sim: Evolution</title>
+    <title>NeuroStudy Pro</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { background: #001200; margin: 0; overflow: hidden; font-family: sans-serif; color: #fff; }
-        canvas { display: block; image-rendering: pixelated; touch-action: none; }
+        :root { --bg: #09090b; --card: #18181b; --primary: #8b5cf6; --accent: #10b981; --text: #fafafa; }
+        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; padding: 15px; padding-bottom: 100px; }
         
-        /* Стили UI как в WorldBox */
-        .ui-panel { position: fixed; bottom: 0; width: 100%; background: #1a1a1a; border-top: 3px solid #333; padding-bottom: env(safe-area-inset-bottom); }
-        .tabs { display: flex; background: #222; border-bottom: 1px solid #444; }
-        .tab { flex: 1; padding: 10px; text-align: center; font-size: 10px; font-weight: bold; color: #888; border-right: 1px solid #333; }
-        .tab.active { background: #333; color: gold; border-bottom: 2px solid gold; }
-        
-        .tools { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; padding: 10px; height: 120px; overflow-y: auto; }
-        .tool { background: #333; border: 1px solid #555; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 5px; position: relative; }
-        .tool.active { border-color: gold; background: #444; }
-        .tool span { font-size: 8px; margin-top: 4px; text-align: center; line-height: 1; }
-        .tool .price { position: absolute; top: -5px; right: -5px; background: gold; color: black; font-size: 8px; padding: 2px 4px; border-radius: 4px; font-weight: bold; }
+        .top-bar { display: flex; justify-content: space-around; background: #18181b; padding: 10px; border-radius: 15px; margin-bottom: 20px; border: 1px solid #27272a; }
+        .stat-item { text-align: center; }
+        .stat-item span { display: block; font-size: 10px; color: #a1a1aa; text-transform: uppercase; }
+        .stat-item b { font-size: 16px; color: var(--primary); }
 
-        #stats { position: fixed; top: 0; width: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: space-around; padding: 8px; font-size: 11px; z-index: 10; border-bottom: 1px solid gold; }
-        .premium { border-color: gold !important; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .card { background: var(--card); border: 1px solid #27272a; padding: 16px; border-radius: 16px; }
+        .card:active { background: #27272a; }
+        .card h3 { margin: 0 0 5px 0; font-size: 14px; color: var(--primary); }
+        .card p { margin: 0; font-size: 10px; color: #a1a1aa; }
+
+        .ref-section { background: linear-gradient(90deg, #1e1b4b, #312e81); border: 1px solid #4338ca; border-radius: 16px; padding: 15px; margin-top: 20px; }
+        .share-btn { background: #fff; color: #000; border: none; width: 100%; padding: 10px; border-radius: 10px; font-weight: bold; margin-top: 10px; font-size: 12px; }
+
+        .tool-ui { display: none; }
+        textarea { width: 100%; background: #000; border: 1px solid #3f3f46; border-radius: 12px; color: white; padding: 12px; box-sizing: border-box; height: 150px; margin: 15px 0; }
+        .action-btn { background: var(--primary); color: white; width: 100%; border: none; padding: 15px; border-radius: 12px; font-weight: bold; }
+
+        #admin-badge { display: none; background: gold; color: black; padding: 2px 8px; border-radius: 5px; font-size: 10px; font-weight: bold; margin-bottom: 10px; text-align: center; }
     </style>
 </head>
 <body>
 
-    <div id="stats">
-        <span>👥 <b id="stat-pop">0</b></span>
-        <span>🏘️ <b id="stat-houses">0</b></span>
-        <span>💰 <b id="stat-mana">100</b></span>
+    <div id="admin-badge">👑 РЕЖИМ СОЗДАТЕЛЯ (БЕЗЛИМИТ)</div>
+
+    <div class="top-bar">
+        <div class="stat-item"><span>Заряды</span><b id="limit-text">5/5</b></div>
+        <div class="stat-item"><span>Друзья</span><b id="ref-count">0</b></div>
+                <div class="stat-item"><span>Ранг</span><b>Middle</b></div>
     </div>
 
-    <canvas id="world"></canvas>
-
-    <div class="ui-panel">
-        <div class="tabs">
-            <div class="tab active" onclick="setTab('nature')">ПРИРОДА</div>
-            <div class="tab" onclick="setTab('life')">ЦИВИЛИЗАЦИЯ</div>
-            <div class="tab" onclick="setTab('power')">РАЗРУШЕНИЕ</div>
+    <div id="home-view">
+        <div class="grid">
+            <div class="card" onclick="openTool('Конспект', 'Вставь текст...')"><h3>📝 Конспект</h3><p>Суть за секунду</p></div>
+            <div class="card" onclick="openTool('Рерайт', 'Вставь текст...')"><h3>🔄 Рерайт</h3><p>Антиплагиат 100%</p></div>
+            <div class="card" onclick="openTool('Rizz AI', 'Что ответить?')"><h3>💌 Rizz AI</h3><p>Пикап мастер</p></div>
+            <div class="card" onclick="openTool('Решала', 'Условие задачи...')"><h3>🧠 Решала</h3><p>Объясним на мемах</p></div>
         </div>
-                <div class="tools" id="tool-container">
-            <!-- Кнопки инструментов -->
+
+        <div class="ref-section">
+            <div style="font-size: 13px; font-weight: bold;">🎁 +5 запросов за друга</div>
+            <p style="font-size: 10px; opacity: 0.8; margin: 5px 0;">Твой друг получит бонусы, а ты — энергию для AI.</p>
+            <button class="share-btn" onclick="shareRef()">ПРИГЛАСИТЬ БРО</button>
+        </div>
+
+        <div style="text-align: center; margin-top: 20px;">
+            <button onclick="buyPremium()" style="background: none; border: 1px solid gold; color: gold; padding: 10px 20px; border-radius: 10px; font-size: 12px;">👑 Купить Premium (49 ⭐)</button>
         </div>
     </div>
 
-<script>
-    let tg = window.Telegram.WebApp;
-    tg.expand();
+    <div id="tool-view" class="tool-ui">
+        <h2 id="tool-name" style="color: var(--primary); margin: 0;"></h2>
+        <textarea id="main-input"></textarea>
+        <button class="action-btn" onclick="sendToAI()">ГЕНЕРИРОВАТЬ</button>
+        <button onclick="goBack()" style="background:none; border:none; color: #555; width:100%; margin-top:15px;">← Назад</button>
+    </div>
 
-    const canvas = document.getElementById('world');
-    const ctx = canvas.getContext('2d');
-    const TILE_SIZE = 10;
-    const COLS = Math.floor(window.innerWidth / TILE_SIZE);
-    const ROWS = Math.floor((window.innerHeight - 180) / TILE_SIZE);
-    
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight - 180;
+    <script>
+        let tg = window.Telegram.WebApp;
+        let userId = tg.initDataUnsafe?.user?.id || 0;
+        let adminId = 8598638125;
 
-    // Сетка мира
-    let grid = Array(COLS).fill().map(() => Array(ROWS).fill(1)); // 1 = Вода
-    let units = [];
-    let buildings = [];
-    let currentTab = 'nature';
-    let currentTool = 'grass';
-
-    const ITEMS = {
-        nature: [
-            { id: 'grass', icon: '🌱', name: 'Трава' },
-            { id: 'forest', icon: '🌲', name: 'Лес' },
-            { id: 'sand', icon: '🏖️', name: 'Песок' },
-            { id: 'mountain', icon: '⛰️', name: 'Горы' }
-        ],
-        life: [
-            { id: 'human', icon: '👨', name: 'Человек' },
-            { id: 'king', icon: '👑', name: 'Король', price: '50 ⭐' },
-            { id: 'orc', icon: '👹', name: 'Орк', price: '30 ⭐' }
-        ],
-        power: [
-            { id: 'fire', icon: '🔥', name: 'Огонь' },
-            { id: 'meteor', icon: '☄️', name: 'Метеор', price: '20 ⭐' },
-            { id: 'nuke', icon: '☢️', name: 'Царь-Бомба', price: '100 ⭐' }
-        ]
-    };
-
-    function setTab(tab) {
-        currentTab = tab;
-        renderTools();
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        event.target.classList.add('active');
-    }
-
-    function renderTools() {
-        const container = document.getElementById('tool-container');
-        container.innerHTML = '';
-        ITEMS[currentTab].forEach(item => {
-            const div = document.createElement('div');
-            div.className = `tool ${currentTool === item.id ? 'active' : ''}`;
-            if(item.price) div.innerHTML += `<div class="price">${item.price}</div>`;
-            div.innerHTML += `<div>${item.icon}</div><span>${item.name}</span>`;
-            div.onclick = () => selectTool(item);
-            container.appendChild(div);
-        });
-    }
-        function selectTool(item) {
-        if(item.price) {
-            tg.showConfirm(`Разблокировать ${item.name} за ${item.price}?`, (ok) => {
-                if(ok) tg.showAlert("Платеж инициирован...");
-            });
-        } else {
-            currentTool = item.id;
-            renderTools();
+        // Проверка на админа
+        if(userId === adminId) {
+            document.getElementById('admin-badge').style.display = 'block';
+            document.getElementById('limit-text').innerText = '∞';
         }
-    }
 
-    canvas.addEventListener('pointerdown', (e) => handleInput(e));
-    canvas.addEventListener('pointermove', (e) => { if(e.buttons > 0) handleInput(e) });
+        function openTool(name, ph) {
+            document.getElementById('home-view').style.display = 'none';
+            document.getElementById('tool-view').style.display = 'block';
+            document.getElementById('tool-name').innerText = name;
+            document.getElementById('main-input').placeholder = ph;
+        }
 
-    function handleInput(e) {
-        const x = Math.floor(e.clientX / TILE_SIZE);
-        const y = Math.floor(e.clientY / TILE_SIZE);
-        if(!grid[x] || grid[x][y] === undefined) return;
+        function goBack() {
+            document.getElementById('home-view').style.display = 'block';
+            document.getElementById('tool-view').style.display = 'none';
+        }
 
-        if(currentTool === 'grass') grid[x][y] = 2;
-        if(currentTool === 'forest') grid[x][y] = 3;
-        if(currentTool === 'sand') grid[x][y] = 4;
-        if(currentTool === 'mountain') grid[x][y] = 5;
-        if(currentTool === 'fire') grid[x][y] = 6;
-        if(currentTool === 'human') units.push({x: e.clientX, y: e.clientY, type: 'h', hp: 100});
-    }
+        function shareRef() {
+            let refLink = `https://t.me/ТВОЙ_БОТ?start=${userId}`;
+            let text = encodeURIComponent("Бро, зацени нейронку для учебы! Она пишет эссе и решает задачи. По моей ссылке дадут +5 бесплатных запросов: ");
+            tg.openTelegramLink(`https://t.me/share/url?url=${refLink}&text=${text}`);
+        }
 
-    function update() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // Рисуем мир
-        for(let x=0; x<COLS; x++) {
-            for(let y=0; y<ROWS; y++) {
-                if(grid[x][y] === 1) ctx.fillStyle = '#0044aa'; // Вода
-                if(grid[x][y] === 2) ctx.fillStyle = '#44aa44'; // Трава
-                if(grid[x][y] === 3)
-                    ctx.fillStyle = '#005500'; // Лес
-                if(grid[x][y] === 4) ctx.fillStyle = '#ddccaa'; // Песок
-                if(grid[x][y] === 5) ctx.fillStyle = '#666666'; // Горы
-                if(grid[x][y] === 6) { 
-                    ctx.fillStyle = '#ff4400'; // Огонь
-                    if(Math.random() < 0.02) grid[x][y] = 4; // Сгорает в песок
-                }
-                ctx.fillRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE-1, TILE_SIZE-1);
+        function sendToAI() {
+            if(userId !== adminId) {
+                tg.showConfirm("Потратить 1 заряд энергии?");
+            } else {
+                tg.showAlert("Запрос отправлен (Admin Mode)");
             }
         }
 
-        // Логика юнитов
-        units.forEach((u, i) => {
-            u.x += (Math.random()-0.5)*2;
-            u.y += (Math.random()-0.5)*2;
-            
-            // Проверка на дома
-            let nearby = units.filter(other => Math.hypot(u.x-other.x, u.y-other.y) < 20);
-            if(nearby.length >= 3 && Math.random() < 0.01) {
-                buildings.push({x: u.x, y: u.y});
-                units = units.filter(unit => !nearby.includes(unit)); // "Уходят" в дом
-            }
-
-            ctx.fillStyle = 'white';
-            ctx.fillRect(u.x, u.y, 4, 4);
-        });
-
-        // Рисуем дома
-        ctx.fillStyle = '#8b4513';
-        buildings.forEach(b => ctx.fillRect(b.x, b.y, 12, 10));
-
-        document.getElementById('stat-pop').innerText = units.length;
-        document.getElementById('stat-houses').innerText = buildings.length;
-        requestAnimationFrame(update);
-    }
-
-    renderTools();
-    update();
-</script>
+        function buyPremium() {
+            tg.showConfirm("Купить неделю безлимита за 49 Stars?");
+        }
+    </script>
 </body>
 </html>
