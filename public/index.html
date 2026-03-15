@@ -7,27 +7,28 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root { --bg: #09090b; --card: #18181b; --primary: #8b5cf6; --accent: #10b981; --text: #fafafa; }
-        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; padding: 15px; padding-bottom: 100px; }
+        body { background: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; padding: 15px; }
         
         .top-bar { display: flex; justify-content: space-around; background: #18181b; padding: 10px; border-radius: 15px; margin-bottom: 20px; border: 1px solid #27272a; }
         .stat-item { text-align: center; }
-        .stat-item span { display: block; font-size: 10px; color: #a1a1aa; text-transform: uppercase; }
+        .stat-item span { display: block; font-size: 10px; color: #a1a1aa; }
         .stat-item b { font-size: 16px; color: var(--primary); }
 
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .card { background: var(--card); border: 1px solid #27272a; padding: 16px; border-radius: 16px; }
-        .card:active { background: #27272a; }
+        .card:active { transform: scale(0.98); background: #27272a; }
         .card h3 { margin: 0 0 5px 0; font-size: 14px; color: var(--primary); }
         .card p { margin: 0; font-size: 10px; color: #a1a1aa; }
 
         .ref-section { background: linear-gradient(90deg, #1e1b4b, #312e81); border: 1px solid #4338ca; border-radius: 16px; padding: 15px; margin-top: 20px; }
-        .share-btn { background: #fff; color: #000; border: none; width: 100%; padding: 10px; border-radius: 10px; font-weight: bold; margin-top: 10px; font-size: 12px; }
+        .share-btn { background: #fff; color: #000; border: none; width: 100%; padding: 12px; border-radius: 10px; font-weight: bold; margin-top: 10px; }
 
         .tool-ui { display: none; }
-        textarea { width: 100%; background: #000; border: 1px solid #3f3f46; border-radius: 12px; color: white; padding: 12px; box-sizing: border-box; height: 150px; margin: 15px 0; }
-        .action-btn { background: var(--primary); color: white; width: 100%; border: none; padding: 15px; border-radius: 12px; font-weight: bold; }
-
-        #admin-badge { display: none; background: gold; color: black; padding: 2px 8px; border-radius: 5px; font-size: 10px; font-weight: bold; margin-bottom: 10px; text-align: center; }
+        textarea { width: 100%; background: #000; border: 1px solid #3f3f46; border-radius: 12px; color: white; padding: 15px; box-sizing: border-box; height: 180px; margin: 15px 0; font-size: 16px; }
+        .action-btn { background: var(--primary); color: white; width: 100%; border: none; padding: 16px; border-radius: 12px; font-weight: bold; font-size: 16px; }
+        
+        #admin-badge { display: none; background: gold; color: black; padding: 5px; border-radius: 8px; font-size: 10px; font-weight: bold; margin-bottom: 15px; text-align: center; }
+        .loading { display: none; text-align: center; color: var(--primary); margin-top: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -35,43 +36,38 @@
     <div id="admin-badge">👑 РЕЖИМ СОЗДАТЕЛЯ (БЕЗЛИМИТ)</div>
 
     <div class="top-bar">
-        <div class="stat-item"><span>Заряды</span><b id="limit-text">5/5</b></div>
-        <div class="stat-item"><span>Друзья</span><b id="ref-count">0</b></div>
-                <div class="stat-item"><span>Ранг</span><b>Middle</b></div>
+        <div class="stat-item"><span>Лимит</span><b id="limit-text">5/5</b></div>
+                <div class="stat-item"><span>Друзья</span><b id="ref-count">0</b></div>
     </div>
 
     <div id="home-view">
         <div class="grid">
-            <div class="card" onclick="openTool('Конспект', 'Вставь текст...')"><h3>📝 Конспект</h3><p>Суть за секунду</p></div>
-            <div class="card" onclick="openTool('Рерайт', 'Вставь текст...')"><h3>🔄 Рерайт</h3><p>Антиплагиат 100%</p></div>
-            <div class="card" onclick="openTool('Rizz AI', 'Что ответить?')"><h3>💌 Rizz AI</h3><p>Пикап мастер</p></div>
-            <div class="card" onclick="openTool('Решала', 'Условие задачи...')"><h3>🧠 Решала</h3><p>Объясним на мемах</p></div>
+            <div class="card" onclick="openTool('Конспект', 'Вставь длинный текст для пересказа...')"><h3>📝 Конспект</h3><p>Суть за секунду</p></div>
+            <div class="card" onclick="openTool('Рерайт', 'Вставь текст, который нужно изменить...')"><h3>🔄 Рерайт</h3><p>Антиплагиат 100%</p></div>
+            <div class="card" onclick="openTool('Rizz AI', 'Вставь сообщение от него/нее...')"><h3>💌 Rizz AI</h3><p>Идеальный ответ</p></div>
+            <div class="card" onclick="openTool('Решала', 'Напиши условие задачи или вопрос...')"><h3>🧠 Решала</h3><p>Объясним всё</p></div>
         </div>
 
         <div class="ref-section">
             <div style="font-size: 13px; font-weight: bold;">🎁 +5 запросов за друга</div>
-            <p style="font-size: 10px; opacity: 0.8; margin: 5px 0;">Твой друг получит бонусы, а ты — энергию для AI.</p>
-            <button class="share-btn" onclick="shareRef()">ПРИГЛАСИТЬ БРО</button>
-        </div>
-
-        <div style="text-align: center; margin-top: 20px;">
-            <button onclick="buyPremium()" style="background: none; border: 1px solid gold; color: gold; padding: 10px 20px; border-radius: 10px; font-size: 12px;">👑 Купить Premium (49 ⭐)</button>
+            <button class="share-btn" onclick="shareRef()">ПРИГЛАСИТЬ ДРУГА</button>
         </div>
     </div>
 
     <div id="tool-view" class="tool-ui">
         <h2 id="tool-name" style="color: var(--primary); margin: 0;"></h2>
         <textarea id="main-input"></textarea>
-        <button class="action-btn" onclick="sendToAI()">ГЕНЕРИРОВАТЬ</button>
-        <button onclick="goBack()" style="background:none; border:none; color: #555; width:100%; margin-top:15px;">← Назад</button>
+        <button class="action-btn" id="send-btn" onclick="sendToAI()">ГЕНЕРИРОВАТЬ</button>
+        <div id="loader" class="loading">⚙️ НЕЙРОСЕТЬ ОБРАБАТЫВАЕТ...</div>
+        <button onclick="goBack()" style="background:none; border:none; color: #555; width:100%; margin-top:20px;">← Назад</button>
     </div>
 
     <script>
         let tg = window.Telegram.WebApp;
+        tg.expand();
         let userId = tg.initDataUnsafe?.user?.id || 0;
         let adminId = 8598638125;
 
-        // Проверка на админа
         if(userId === adminId) {
             document.getElementById('admin-badge').style.display = 'block';
             document.getElementById('limit-text').innerText = '∞';
@@ -82,6 +78,7 @@
             document.getElementById('tool-view').style.display = 'block';
             document.getElementById('tool-name').innerText = name;
             document.getElementById('main-input').placeholder = ph;
+            tg.HapticFeedback.impactOccurred('medium');
         }
 
         function goBack() {
@@ -90,21 +87,19 @@
         }
 
         function shareRef() {
-            let refLink = `https://t.me/ТВОЙ_БОТ?start=${userId}`;
-            let text = encodeURIComponent("Бро, зацени нейронку для учебы! Она пишет эссе и решает задачи. По моей ссылке дадут +5 бесплатных запросов: ");
-            tg.openTelegramLink(`https://t.me/share/url?url=${refLink}&text=${text}`);
+            let refLink = `https://t.me/Clash_Of_MemesBot?start=${userId}`;
+            tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(refLink)}&text=${encodeURIComponent("Бро, нейронка реально решает задачи! Зайди по ссылке, дадут +5 запросов.")}`);
         }
 
         function sendToAI() {
-            if(userId !== adminId) {
-                tg.showConfirm("Потратить 1 заряд энергии?");
-            } else {
-                tg.showAlert("Запрос отправлен (Admin Mode)");
-            }
-        }
+            const text = document.getElementById('main-input').value;
+            const tool = document.getElementById('tool-name').innerText;
+            if(!text) return tg.showAlert("Введите текст!");
 
-        function buyPremium() {
-            tg.showConfirm("Купить неделю безлимита за 49 Stars?");
+            document.getElementById('send-btn').style.display = 'none';
+            document.getElementById('loader').style.display = 'block';
+
+            tg.sendData(JSON.stringify({ tool: tool, text: text }));
         }
     </script>
 </body>
