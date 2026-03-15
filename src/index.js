@@ -15,7 +15,9 @@ async function getAIResponse(prompt, tool) {
                 { role: "user", content: prompt }
             ]
         }, {
-            headers: { 'Authorization': `Bearer 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`, 'Content-Type': 'application/json' }
+            headers: { 'Authorization': `Bearer sk-FIYR5G9ukvdeGlvLPyDs_A
+
+`, 'Content-Type': 'application/json' }
         });
         return response.data.choices[0].message.content;
     } catch (e) {
