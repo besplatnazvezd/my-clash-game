@@ -3,190 +3,180 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ruins: Pixel God Sim</title>
+    <title>God Sim: Evolution</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { background: #000; margin: 0; overflow: hidden; font-family: 'Courier New', monospace; color: white; }
+        body { background: #001200; margin: 0; overflow: hidden; font-family: sans-serif; color: #fff; }
         canvas { display: block; image-rendering: pixelated; touch-action: none; }
-        .ui-tabs { position: fixed; bottom: 80px; width: 100%; display: flex; justify-content: center; gap: 5px; }
-        .tab-btn { background: #333; border: 1px solid #777; color: white; padding: 5px 10px; font-size: 10px; border-radius: 5px; }
-        .tab-btn.active { background: gold; color: black; border-color: white; }
         
-        .ui-tools { position: fixed; bottom: 0; width: 100%; background: #222; display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; padding: 5px; border-top: 2px solid gold; }
-        .tool { background: #444; border: 1px solid #666; color: white; font-size: 18px; padding: 10px 0; border-radius: 4px; display: flex; flex-direction: column; align-items: center; }
-        .tool.active { border: 2px solid white; background: #666; }
-        .tool span { font-size: 8px; margin-top: 3px; text-transform: uppercase; }
+        /* Стили UI как в WorldBox */
+        .ui-panel { position: fixed; bottom: 0; width: 100%; background: #1a1a1a; border-top: 3px solid #333; padding-bottom: env(safe-area-inset-bottom); }
+        .tabs { display: flex; background: #222; border-bottom: 1px solid #444; }
+        .tab { flex: 1; padding: 10px; text-align: center; font-size: 10px; font-weight: bold; color: #888; border-right: 1px solid #333; }
+        .tab.active { background: #333; color: gold; border-bottom: 2px solid gold; }
         
-        #stats { position: fixed; top: 0; width: 100%; background: rgba(0,0,0,0.6); padding: 5px; font-size: 10px; display: flex; justify-content: space-around; }
+        .tools { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; padding: 10px; height: 120px; overflow-y: auto; }
+        .tool { background: #333; border: 1px solid #555; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 5px; position: relative; }
+        .tool.active { border-color: gold; background: #444; }
+        .tool span { font-size: 8px; margin-top: 4px; text-align: center; line-height: 1; }
+        .tool .price { position: absolute; top: -5px; right: -5px; background: gold; color: black; font-size: 8px; padding: 2px 4px; border-radius: 4px; font-weight: bold; }
+
+        #stats { position: fixed; top: 0; width: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: space-around; padding: 8px; font-size: 11px; z-index: 10; border-bottom: 1px solid gold; }
+        .premium { border-color: gold !important; }
     </style>
 </head>
 <body>
 
     <div id="stats">
-        <span>👥 POP: <b id="stat-pop">0</b></span>
-        <span>🌍 LAND: <b id="stat-land">0%</b></span>
-        <span>⏳ TIME: <b id="stat-time">1x</b></span>
+        <span>👥 <b id="stat-pop">0</b></span>
+        <span>🏘️ <b id="stat-houses">0</b></span>
+        <span>💰 <b id="stat-mana">100</b></span>
     </div>
 
-    <canvas id="game"></canvas>
+    <canvas id="world"></canvas>
 
-    <div class="ui-tabs">
-        <button class="tab-btn active" onclick="setCategory('land')">ЗЕМЛЯ</button>
-        <button class="tab-btn" onclick="setCategory('life')">ЖИЗНЬ</button>
-        <button class="tab-btn" onclick="setCategory('chaos')">ХАОС</button>
-    </div>
-
-    <div class="ui-tools" id="toolbar">
-        <!-- Кнопки генерятся через JS -->
+    <div class="ui-panel">
+        <div class="tabs">
+            <div class="tab active" onclick="setTab('nature')">ПРИРОДА</div>
+            <div class="tab" onclick="setTab('life')">ЦИВИЛИЗАЦИЯ</div>
+            <div class="tab" onclick="setTab('power')">РАЗРУШЕНИЕ</div>
+        </div>
+                <div class="tools" id="tool-container">
+            <!-- Кнопки инструментов -->
+        </div>
     </div>
 
 <script>
-    let tg = window.Telegram.WebApp; tg.expand();
-    const canvas = document.getElementById('game');
+    let tg = window.Telegram.WebApp;
+    tg.expand();
+
+    const canvas = document.getElementById('world');
     const ctx = canvas.getContext('2d');
-    
-    const TILE_SIZE = 8;
-    const ROWS = Math.floor(window.innerHeight / TILE_SIZE);
+    const TILE_SIZE = 10;
     const COLS = Math.floor(window.innerWidth / TILE_SIZE);
-        canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    const ROWS = Math.floor((window.innerHeight - 180) / TILE_SIZE);
+    
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight - 180;
 
-    // Типы плиток
-    const TILES = {
-        DEEP_WATER: { color: '#004488', id: 0 },
-        WATER: { color: '#0066cc', id: 1 },
-        SAND: { color: '#d2b48c', id: 2 },
-        GRASS: { color: '#3a8024', id: 3 },
-        FOREST: { color: '#1a5e11', id: 4 },
-        MOUNTAIN: { color: '#666666', id: 5 },
-        FIRE: { color: '#ff4400', id: 6 }
-    };
+    // Сетка мира
+    let grid = Array(COLS).fill().map(() => Array(ROWS).fill(1)); // 1 = Вода
+    let units = [];
+    let buildings = [];
+    let currentTab = 'nature';
+    let currentTool = 'grass';
 
-    let world = Array(COLS).fill().map(() => Array(ROWS).fill(0));
-    let entities = [];
-    let currentTool = TILES.GRASS.id;
-    let category = 'land';
-    let isDrawing = false;
-
-    // Инструменты по категориям
-    const TOOLS = {
-        land: [
-            { icon: '🌊', name: 'Water', id: 1 },
-            { icon: '🏖️', name: 'Sand', id: 2 },
-            { icon: '🌱', name: 'Grass', id: 3 },
-            { icon: '🌲', name: 'Forest', id: 4 },
-            { icon: '⛰️', name: 'Mtn', id: 5 }
+    const ITEMS = {
+        nature: [
+            { id: 'grass', icon: '🌱', name: 'Трава' },
+            { id: 'forest', icon: '🌲', name: 'Лес' },
+            { id: 'sand', icon: '🏖️', name: 'Песок' },
+            { id: 'mountain', icon: '⛰️', name: 'Горы' }
         ],
         life: [
-            { icon: '👨', name: 'Human', id: 'human' },
-            { icon: '🐑', name: 'Sheep', id: 'sheep' },
-            { icon: '🐺', name: 'Wolf', id: 'wolf' }
+            { id: 'human', icon: '👨', name: 'Человек' },
+            { id: 'king', icon: '👑', name: 'Король', price: '50 ⭐' },
+            { id: 'orc', icon: '👹', name: 'Орк', price: '30 ⭐' }
         ],
-        chaos: [
-            { icon: '🔥', name: 'Fire', id: 6 },
-            { icon: '☄️', name: 'Meteor', id: 'meteor' },
-            { icon: '💣', name: 'Bomb', id: 'bomb' }
+        power: [
+            { id: 'fire', icon: '🔥', name: 'Огонь' },
+            { id: 'meteor', icon: '☄️', name: 'Метеор', price: '20 ⭐' },
+            { id: 'nuke', icon: '☢️', name: 'Царь-Бомба', price: '100 ⭐' }
         ]
     };
 
-    function renderToolbar() {
-        const bar = document.getElementById('toolbar');
-        bar.innerHTML = '';
-        TOOLS[category].forEach(t => {
-            const btn = document.createElement('div');
-            btn.className = `tool ${currentTool === t.id ? 'active' : ''}`;
-            btn.innerHTML = `${t.icon}<span>${t.name}</span>`;
-            btn.onclick = () => { currentTool = t.id; renderToolbar(); };
-            bar.appendChild(btn);
+    function setTab(tab) {
+        currentTab = tab;
+        renderTools();
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        event.target.classList.add('active');
+    }
+
+    function renderTools() {
+        const container = document.getElementById('tool-container');
+        container.innerHTML = '';
+        ITEMS[currentTab].forEach(item => {
+            const div = document.createElement('div');
+            div.className = `tool ${currentTool === item.id ? 'active' : ''}`;
+            if(item.price) div.innerHTML += `<div class="price">${item.price}</div>`;
+            div.innerHTML += `<div>${item.icon}</div><span>${item.name}</span>`;
+            div.onclick = () => selectTool(item);
+            container.appendChild(div);
         });
     }
-
-    function setCategory(cat) {
-        category = cat;
-        currentTool = TOOLS[cat][0].id;
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        event.target.classList.add('active');
-        renderToolbar();
+        function selectTool(item) {
+        if(item.price) {
+            tg.showConfirm(`Разблокировать ${item.name} за ${item.price}?`, (ok) => {
+                if(ok) tg.showAlert("Платеж инициирован...");
+            });
+        } else {
+            currentTool = item.id;
+            renderTools();
+        }
     }
 
-    canvas.addEventListener('pointerdown', (e) => { isDrawing = true; handleInput(e); });
-    canvas.addEventListener('pointermove', (e) => { if(isDrawing) handleInput(e); });
-        window.addEventListener('pointerup', () => isDrawing = false);
+    canvas.addEventListener('pointerdown', (e) => handleInput(e));
+    canvas.addEventListener('pointermove', (e) => { if(e.buttons > 0) handleInput(e) });
 
     function handleInput(e) {
         const x = Math.floor(e.clientX / TILE_SIZE);
         const y = Math.floor(e.clientY / TILE_SIZE);
-        if (x < 0 || x >= COLS || y < 0 || y >= ROWS) return;
+        if(!grid[x] || grid[x][y] === undefined) return;
 
-        if (typeof currentTool === 'number') {
-            // Рисуем кистью 3x3
-            for(let i=-1; i<=1; i++) {
-                for(let j=-1; j<=1; j++) {
-                    if(world[x+i] && world[x+i][y+j] !== undefined) world[x+i][y+j] = currentTool;
-                }
-            }
-        } else {
-            // Спавним существ
-            if(currentTool === 'human') entities.push({x: e.clientX, y: e.clientY, type: 'human', hp: 100});
-            if(currentTool === 'meteor') triggerMeteor(e.clientX, e.clientY);
-        }
-    }
-
-    function triggerMeteor(x, y) {
-        tg.HapticFeedback.notificationOccurred('error');
-        const tx = Math.floor(x / TILE_SIZE);
-        const ty = Math.floor(y / TILE_SIZE);
-        for(let i=-5; i<=5; i++) {
-            for(let j=-5; j<=5; j++) {
-                if(world[tx+i] && world[tx+i][ty+j] !== undefined) world[tx+i][ty+j] = TILES.FIRE.id;
-            }
-        }
+        if(currentTool === 'grass') grid[x][y] = 2;
+        if(currentTool === 'forest') grid[x][y] = 3;
+        if(currentTool === 'sand') grid[x][y] = 4;
+        if(currentTool === 'mountain') grid[x][y] = 5;
+        if(currentTool === 'fire') grid[x][y] = 6;
+        if(currentTool === 'human') units.push({x: e.clientX, y: e.clientY, type: 'h', hp: 100});
     }
 
     function update() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        let landCount = 0;
+
         // Рисуем мир
         for(let x=0; x<COLS; x++) {
-            for(let y=0; y<ROWS; y++) {const tile = world[x][y];
-                if(tile > 1) landCount++;
-                ctx.fillStyle = Object.values(TILES).find(t => t.id === tile).color;
-                ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-                
-                // Распространение огня
-                if(tile === TILES.FIRE.id && Math.random() < 0.05) {
-                    if(Math.random() < 0.1) world[x][y] = TILES.SAND.id; // Сгорел
+            for(let y=0; y<ROWS; y++) {
+                if(grid[x][y] === 1) ctx.fillStyle = '#0044aa'; // Вода
+                if(grid[x][y] === 2) ctx.fillStyle = '#44aa44'; // Трава
+                if(grid[x][y] === 3)
+                    ctx.fillStyle = '#005500'; // Лес
+                if(grid[x][y] === 4) ctx.fillStyle = '#ddccaa'; // Песок
+                if(grid[x][y] === 5) ctx.fillStyle = '#666666'; // Горы
+                if(grid[x][y] === 6) { 
+                    ctx.fillStyle = '#ff4400'; // Огонь
+                    if(Math.random() < 0.02) grid[x][y] = 4; // Сгорает в песок
                 }
+                ctx.fillRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE-1, TILE_SIZE-1);
             }
         }
 
-        // Обновляем существ
-        entities.forEach((e, index) => {
-            e.x += (Math.random() - 0.5) * 4;
-            e.y += (Math.random() - 0.5) * 4;
+        // Логика юнитов
+        units.forEach((u, i) => {
+            u.x += (Math.random()-0.5)*2;
+            u.y += (Math.random()-0.5)*2;
             
-            const tx = Math.floor(e.x / TILE_SIZE);
-            const ty = Math.floor(e.y / TILE_SIZE);
-            
-            // Если в воде — тонет
-            if(world[tx] && (world[tx][ty] === 0 || world[tx][ty] === 1)) {
-                e.hp -= 1;
+            // Проверка на дома
+            let nearby = units.filter(other => Math.hypot(u.x-other.x, u.y-other.y) < 20);
+            if(nearby.length >= 3 && Math.random() < 0.01) {
+                buildings.push({x: u.x, y: u.y});
+                units = units.filter(unit => !nearby.includes(unit)); // "Уходят" в дом
             }
 
-            ctx.fillStyle = e.type === 'human' ? 'white' : 'yellow';
-            ctx.fillRect(e.x, e.y, 4, 4);
+            ctx.fillStyle = 'white';
+            ctx.fillRect(u.x, u.y, 4, 4);
         });
-        
-        entities = entities.filter(e => e.hp > 0);
 
-        document.getElementById('stat-pop').innerText = entities.length;
-        document.getElementById('stat-land').innerText = Math.floor((landCount / (COLS * ROWS)) * 100) + '%';
-        
+        // Рисуем дома
+        ctx.fillStyle = '#8b4513';
+        buildings.forEach(b => ctx.fillRect(b.x, b.y, 12, 10));
+
+        document.getElementById('stat-pop').innerText = units.length;
+        document.getElementById('stat-houses').innerText = buildings.length;
         requestAnimationFrame(update);
     }
 
-    renderToolbar();
+    renderTools();
     update();
 </script>
 </body>
