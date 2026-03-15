@@ -1,19 +1,85 @@
 <!DOCTYPE html>
-<html lang="ru">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
-    <title>Vincere: Age of Empires</title>
-    <!-- Подключаем Tailwind напрямую, чтобы не ждать сборки -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>World of Ruins: God Sim</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-      body { font-family: 'Inter', sans-serif; background-color: #020617; margin: 0; }
-      /* Скрываем скроллбар для красоты */
-      ::-webkit-scrollbar { width: 0px; background: transparent; }
+        body { background: #1a1a1a; color: white; font-family: sans-serif; margin: 0; overflow: hidden; }
+        #game-map { background: #2d5a27; width: 100vw; height: 60vh; position: relative; border-bottom: 4px solid #111; cursor: crosshair; }
+        .cell { position: absolute; width: 20px; height: 20px; border: 1px solid rgba(0,0,0,0.1); }
+        .human { background: #ffdbac; border-radius: 50%; width: 6px; height: 6px; position: absolute; }
+        .house { background: #8b4513; width: 14px; height: 14px; position: absolute; border: 1px solid #444; }
+        
+        .ui-panel { height: 40vh; background: #222; padding: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .power-btn { background: #444; border: 2px solid gold; color: white; padding: 10px; border-radius: 8px; font-weight: bold; }
+        .power-btn:active { background: gold; color: black; }
+        .res { font-size: 14px; color: gold; text-align: center; grid-column: span 2; }
     </style>
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
+</head>
+<body>
+
+    <div id="game-map" onclick="spawnLife(event)">
+        <!-- Тут будут появляться человечки и дома -->
+    </div>
+
+    <div class="ui-panel">
+        <div class="res">🏙️ Городов: <span id="cities">0</span> | 👥 Население: <span id="pop">0</span> | 💎 Мана: <span id="mana">100</span></div>
+        
+        <button class="power-btn" onclick="setPower('spawn')">👣 СОЗДАТЬ ЖИЗНЬ</button>
+        <button class="power-btn" onclick="setPower('house')">🏠 ПОСТРОИТЬ ДОМ</button>
+        <button class="power-btn" onclick="buyPower('meteor')" style="border-color: #ff4500;">🔥 МЕТЕОРИТ (ДОНАТ)</button>
+        <button class="power-btn" onclick="buyPower('dragon')" style="border-color: #9400d3;">🐉 ДРАКОН (ДОНАТ)</button>
+    </div>
+
+    <script>
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+
+        let currentPower = 'spawn';
+        let population = 0;
+        let cities = 0;
+
+        function setPower(power) {
+            currentPower = power;
+            tg.HapticFeedback.impactOccurred('light');
+        }
+
+        function spawnLife(e) {
+            const map = document.getElementById('game-map');
+            const x = e.clientX;
+            const y = e.clientY;
+
+            if (currentPower === 'spawn') {
+                const human = document.createElement('div');
+                human.className = 'human';
+                human.style.left = x + 'px';
+                human.style.top = y + 'px';
+                map.appendChild(human);
+                population++;
+            } else if (currentPower === 'house') {
+                const house = document.createElement('div');
+                house.className = 'house';
+                house.style.left = x - 7 + 'px';
+                house.style.top = y - 7 + 'px';
+                map.appendChild(house);
+                cities++;
+            }
+            
+            updateUI();
+            tg.HapticFeedback.impactOccurred('medium');
+        }
+
+        function updateUI() {
+            document.getElementById('pop').innerText = population;
+            document.getElementById('cities').innerText = cities;
+        }
+
+        function buyPower(type) {
+            tg.showConfirm("Эта сила Бога стоит 50 Звезд. Разблокировать?");
+            // Тут пойдет вызов платежа
+        }
+    </script>
+</body>
 </html>
